@@ -6,6 +6,9 @@ A configurable Birthday Timer Clock with 4 Modes of opertaion whitch can be conf
 - NodeMCU ESP8266 (integrated WiFi)
 - DS3231 RTC Modul or any other
 - MAX7219 modules (as many as you like)
+- USB Power Supply (Powers nodemcu via vin and MAX7219)
+- various cables 
+- some sort of case
 
 ## Modes of operation
 1. **Time only** <br> displays current time centered in the display 
