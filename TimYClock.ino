@@ -67,12 +67,24 @@ void setup(void)
 
   // Initialize RTC
   Serial.println("Starting rtc");
-  rtc.begin();
+  if(! rtc.begin() ) {
+    Serial.println("Couldn't find RTC");
+    while (1);
+  }
 
    if (rtc.lostPower()) {
     Serial.println("RTC lost power, lets set the time!");
+    
     // following line sets the RTC to the date & time this sketch was compiled
     rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+    Serial.println(F(__DATE__));
+    Serial.println(F(__TIME__));
+
+    DateTime now = rtc.now();
+    char buf1[20];
+    sprintf(buf1, "%02d:%02d:%02d %02d/%02d/%02d",  now.hour(), now.minute(), now.second(), now.day(), now.month(), now.year());
+    Serial.print(F("Date/Time: "));
+    Serial.println(buf1);
   }
 
   // Init SOFTAP
@@ -102,13 +114,39 @@ void setup(void)
                   String("</select>  <br>  <b>Text ?</b><br>  <input type=\"text\" name=\"t\" maxlength=\"150\" value=\"" ) + 
                   String( text ) + 
                   String( "\" style=\"width:100%\"/>") +
-                  String("<br><br>  <input type=\"submit\" value=\"Save\" style=\"width:100%\"/> </form></body>");
+                  String("<br><br>  <input type=\"submit\" value=\"Save\" style=\"width:100%\"/> </form><hr/>")+
+                  String("<form action=\"saveTime\" method=\"get\">") + 
+                  String("<input type=\"text\" name=\"date\" maxlength=\"150\" value=\"" ) + 
+                  String( F(__DATE__) ) + 
+                  String( "\" style=\"width:100%\"/><br/>") +
+                  String("<input type=\"text\" name=\"time\" maxlength=\"150\" value=\"" ) + 
+                  String( F(__TIME__) ) + 
+                  String( "\" style=\"width:100%\"/><br/>") +
+                  String("<br><br>  <input type=\"submit\" value=\"Save\" style=\"width:100%\"/>");
+                  String("</form></body>");
 
                                   
     server.sendHeader("Connection", "close");
     server.send(200, "text/html", resp);
             
   });
+
+  server.on("/saveTime", [](){
+    
+    // Save Values to eeprom and return to the index page
+    Serial.println("-> setTime");
+    
+    String fdate = server.arg("date");
+    String ftime = server.arg("time");   
+    rtc.adjust(DateTime(fdate.c_str(), ftime.c_str()));
+
+    Serial.println("TimeSet");
+    
+    server.sendHeader("Location", String("/"), true);
+    server.send ( 302, "text/plain", "");
+
+        
+  }); 
 
   server.on("/save", [](){
 
@@ -165,9 +203,12 @@ void loop(void)
 
   
   if (P.getZoneStatus(0)) {
-    Serial.println("zone complete");
+    //Serial.println("zone complete");
     DateTime now = rtc.now();
-
+    char buf1[20];
+    sprintf(buf1, "%02d:%02d:%02d %02d/%02d/%02d",  now.hour(), now.minute(), now.second(), now.day(), now.month(), now.year());
+    //Serial.print(F("Date/Time: "));
+    //Serial.println(buf1);
     if (mode == 1) {
       // Just show time
       Serial.println("using clock");
@@ -251,10 +292,10 @@ void loop(void)
       } else {
         //Serial.println("using clock");
         if (summertime_EU(now.year(), now.month(), now.day(), now.hour(), 1)) { 
-          Serial.println("using SummerTime");  
+          //Serial.println("using SummerTime");  
           sprintf(szTime, "%02d:%02d:%02d", now.hour()+1, now.minute(), now.second());
         } else {
-           Serial.println("using WinterTime");
+           //Serial.println("using WinterTime");
           sprintf(szTime, "%02d:%02d:%02d", now.hour(), now.minute(), now.second());
         }
         P.displayText( szTime, PA_CENTER, 100, 1, PA_PRINT, PA_NO_EFFECT);
